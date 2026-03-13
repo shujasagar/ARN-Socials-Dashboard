@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Content Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&family=Instrument+Serif:ital@1&display=swap');
+
+  :root {
+    --bg: #F7F5F1;
+    --card: #FFFFFF;
+    --border: #E8E4DC;
+    --text: #1A1A1A;
+    --muted: #9A9488;
+    --track: #EDE9E3;
+    --cell-empty: #F2F0EB;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 28px 20px 48px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { max-width: 700px; margin: 0 auto; }
+
+  .header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 28px;
+  }
+  .header-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--muted); margin-bottom: 4px;
+  }
+  .header h1 {
+    font-size: 28px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.1;
+  }
+  .header-actions { display: flex; gap: 6px; }
+  .header-actions button {
+    padding: 7px 13px; border-radius: 9px; border: 1.5px solid var(--border);
+    background: var(--card); cursor: pointer; font-size: 11px; font-weight: 600;
+    color: var(--muted); font-family: inherit; transition: all 0.15s;
+  }
+  .header-actions button:hover { background: var(--border); }
+
+  /* Summary strip */
+  .summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+  .stat-card {
+    background: var(--card); border-radius: 14px; padding: 16px 18px;
+    border: 1.5px solid var(--border);
+  }
+  .stat-label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--muted); margin-bottom: 4px;
+  }
+  .stat-value {
+    font-size: 26px; font-weight: 800; letter-spacing: -0.04em;
+    font-family: 'Space Mono', monospace;
+  }
+  .stat-suffix { font-size: 14px; font-weight: 600; color: var(--muted); }
+
+  /* Platform cards */
+  .platforms { display: flex; flex-direction: column; gap: 14px; }
+
+  .platform-card {
+    background: var(--card); border-radius: 18px; padding: 22px 24px;
+    border: 1.5px solid var(--border);
+    animation: fadeUp 0.5s ease both;
+  }
+  .platform-card:nth-child(1) { animation-delay: 0.1s; }
+  .platform-card:nth-child(2) { animation-delay: 0.2s; }
+  .platform-card:nth-child(3) { animation-delay: 0.3s; }
+  .platform-card:nth-child(4) { animation-delay: 0.4s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .platform-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+  }
+  .platform-left { display: flex; align-items: center; gap: 12px; }
+  .platform-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800;
+  }
+  .platform-name { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+  .platform-sub { font-size: 11px; color: var(--muted); margin-top: 2px; font-weight: 500; }
+  .platform-sub .editable-goal {
+    cursor: pointer; border-bottom: 1px dashed var(--muted); font-weight: 600;
+  }
+  .goal-input {
+    width: 36px; border: none; border-bottom: 2px solid; background: transparent;
+    font-size: 11px; font-weight: 700; outline: none; text-align: center;
+    font-family: inherit;
+  }
+  .platform-pct {
+    font-size: 28px; font-weight: 800; letter-spacing: -0.04em; line-height: 1;
+    font-family: 'Space Mono', monospace;
+  }
+  .platform-pct-sign { font-size: 14px; font-weight: 600; }
+  .completion-star { font-size: 20px; margin-left: 10px; animation: pulse 2s ease infinite; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
+  }
+
+  /* Progress bar */
+  .progress-track {
+    width: 100%; height: 5px; border-radius: 3px;
+    background: var(--track); overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 3px;
+    transition: width 0.8s cubic-bezier(0.22,1,0.36,1);
+  }
+
+  /* Heatmap */
+  .heatmap {
+    display: flex; justify-content: space-between; margin-top: 16px; gap: 4px;
+  }
+  .heat-col { display: flex; flex-direction: column; align-items: center; gap: 5px; position: relative; }
+  .heat-label {
+    font-size: 9px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--muted);
+  }
+  .heat-cell {
+    width: 40px; height: 40px; border-radius: 9px;
+    border: 1.5px solid var(--border); background: var(--cell-empty);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    transition: all 0.15s;
+  }
+  .heat-cell:hover { transform: scale(1.12); }
+  .heat-cell.filled { color: #fff; border-color: transparent; }
+  .heat-cell.today { border-width: 2px; }
+
+  /* Dropdown */
+  .dropdown {
+    position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    margin-top: 5px; background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 11px; padding: 5px; z-index: 100; min-width: 130;
+    box-shadow: 0 10px 36px rgba(0,0,0,0.12);
+    animation: dropIn 0.15s ease;
+  }
+  @keyframes dropIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-5px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .dropdown button {
+    display: block; width: 100%; padding: 7px 12px; background: none;
+    border: none; cursor: pointer; font-size: 12px; font-weight: 500;
+    color: var(--text); border-radius: 7px; text-align: left; font-family: inherit;
+  }
+  .dropdown button:hover { background: #f0ece5; }
+  .dropdown .divider { border-top: 1px solid var(--border); margin: 3px 0; }
+  .dropdown .cancel { font-size: 11px; color: var(--muted); }
+
+  /* Tags */
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 14px; min-height: 24px; }
+  .tag {
+    font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 16px;
+    cursor: pointer; transition: all 0.15s; letter-spacing: 0.01em;
+  }
+  .tag:hover { filter: brightness(0.92); }
+  .tag .tag-day { margin-left: 3px; opacity: 0.5; }
+  .empty-hint { font-size: 11px; color: var(--muted); font-style: italic; }
+
+  .footer {
+    text-align: center; margin-top: 28px; font-size: 11px;
+    color: var(--muted); font-weight: 500;
+  }
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+
+<script>
+const PLATFORMS = [
+  { key: "youtube", label: "YouTube", icon: "▶", accent: "#FF3B30", bg: "rgba(255,59,48,0.08)" },
+  { key: "facebook", label: "Facebook", icon: "f", accent: "#1877F2", bg: "rgba(24,119,242,0.07)" },
+  { key: "linkedin", label: "LinkedIn", icon: "in", accent: "#0066FF", bg: "rgba(0,102,255,0.07)" },
+  { key: "instagram", label: "Instagram", icon: "◎", accent: "#E1306C", bg: "rgba(225,48,108,0.07)" },
+];
+
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+const CONTENT_TYPES = {
+  youtube: ["Video","Short","Community Post","Live"],
+  facebook: ["Post","Reel","Story","Live"],
+  linkedin: ["Post","Article","Comment","Share"],
+  instagram: ["Reel","Story","Post","Carousel"],
+};
+
+const STORAGE_KEY = "notion_content_tracker";
+
+function getWeekId() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  const weekNo = Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7);
+  return `${now.getFullYear()}-W${weekNo}`;
+}
+
+function emptyData() {
+  const d = {};
+  PLATFORMS.forEach(p => { d[p.key] = {}; DAYS.forEach(day => { d[p.key][day] = []; }); });
+  return d;
+}
+
+function defaultGoals() {
+  return { youtube: 4, facebook: 10, linkedin: 4, instagram: 5 };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.weekId === getWeekId()) return parsed;
+    }
+  } catch(e) {}
+  return { weekId: getWeekId(), data: sampleData(), goals: defaultGoals() };
+}
+
+function sampleData() {
+  const d = emptyData();
+  d.youtube["Mon"]=["Video"]; d.youtube["Wed"]=["Short","Community Post"]; d.youtube["Fri"]=["Video"];
+  d.facebook["Mon"]=["Post","Post"]; d.facebook["Tue"]=["Reel"]; d.facebook["Wed"]=["Post"];
+  d.facebook["Thu"]=["Post","Story"]; d.facebook["Fri"]=["Post"]; d.facebook["Sat"]=["Live"];
+  d.linkedin["Tue"]=["Post"]; d.linkedin["Thu"]=["Article"]; d.linkedin["Fri"]=["Comment","Share"];
+  d.instagram["Mon"]=["Reel"]; d.instagram["Wed"]=["Story","Story","Post"];
+  d.instagram["Sat"]=["Carousel"]; d.instagram["Sun"]=["Reel","Story"];
+  return d;
+}
+
+function saveState(state) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+let state = loadState();
+let openDropdown = null; // { platform, day }
+
+function getTodayLabel() {
+  const idx = new Date().getDay();
+  return DAYS[(idx + 6) % 7];
+}
+
+function totalForPlatform(key) {
+  return DAYS.reduce((s, d) => s + state.data[key][d].length, 0);
+}
+
+function render() {
+  const app = document.getElementById("app");
+  const today = getTodayLabel();
+  const totalPosts = PLATFORMS.reduce((s, p) => s + totalForPlatform(p.key), 0);
+  const totalGoal = Object.values(state.goals).reduce((s, g) => s + g, 0);
+  const overallPct = totalGoal > 0 ? Math.round((totalPosts / totalGoal) * 100) : 0;
+  const activeDays = new Set(PLATFORMS.flatMap(p => DAYS.filter(d => state.data[p.key][d].length > 0))).size;
+
+  const weekStart = new Date(Date.now() - (new Date().getDay() - 1) * 86400000);
+  const weekLabel = weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+  let html = `
+    <div class="header">
+      <div>
+        <div class="header-label">Weekly Content Tracker</div>
+        <h1>Week of ${weekLabel}</h1>
+      </div>
+      <div class="header-actions">
+        <button onclick="clearAll()">Clear</button>
+        <button onclick="resetDemo()">Reset Demo</button>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="stat-card">
+        <div class="stat-label">Total Posts</div>
+        <div class="stat-value">${totalPosts}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Days</div>
+        <div class="stat-value">${activeDays}<span class="stat-suffix">/7</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Overall</div>
+        <div class="stat-value">${overallPct}<span class="stat-suffix">%</span></div>
+      </div>
+    </div>
+
+    <div class="platforms">
+  `;
+
+  PLATFORMS.forEach(p => {
+    const total = totalForPlatform(p.key);
+    const goal = state.goals[p.key];
+    const pct = goal > 0 ? Math.round((total / goal) * 100) : 0;
+    const barWidth = Math.min(pct, 100);
+
+    html += `
+      <div class="platform-card">
+        <div class="platform-header">
+          <div class="platform-left">
+            <div class="platform-icon" style="background:${p.bg};color:${p.accent};${p.key==='linkedin'?"font-family:'Instrument Serif',Georgia,serif;font-style:italic;":""}">${p.icon}</div>
+            <div>
+              <div class="platform-name">${p.label}</div>
+              <div class="platform-sub">
+                ${total} of <span class="editable-goal" onclick="editGoal('${p.key}',this)" title="Click to edit">${goal} goal</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;">
+            <div class="platform-pct" style="color:${p.accent}">${pct}<span class="platform-pct-sign">%</span></div>
+            ${pct >= 100 ? '<span class="completion-star">✦</span>' : ''}
+          </div>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${barWidth}%;background:${p.accent}"></div>
+        </div>
+
+        <div class="heatmap">
+    `;
+
+    DAYS.forEach(day => {
+      const items = state.data[p.key][day];
+      const count = items.length;
+      const isToday = day === today;
+      const isOpen = openDropdown && openDropdown.platform === p.key && openDropdown.day === day;
+      let cellStyle = '';
+      let cellClass = 'heat-cell';
+      if (count > 0) {
+        const opacity = Math.min(0.25 + count * 0.2, 1);
+        cellStyle = `background:${p.accent};opacity:${opacity};`;
+        cellClass += ' filled';
+      }
+      if (isToday) {
+        cellClass += ' today';
+        cellStyle += `border-color:${p.accent};`;
+      }
+
+      html += `
+        <div class="heat-col">
+          <span class="heat-label" ${isToday ? `style="color:${p.accent}"` : ''}>${day}</span>
+          <div class="${cellClass}" style="${cellStyle}" onclick="toggleDropdown('${p.key}','${day}')">
+            ${count > 0 ? count : '·'}
+          </div>
+          ${isOpen ? renderDropdown(p.key, day, p.accent) : ''}
+        </div>
+      `;
+    });
+
+    html += `</div><div class="tags">`;
+
+    let hasItems = false;
+    DAYS.forEach(day => {
+      state.data[p.key][day].forEach((item, i) => {
+        hasItems = true;
+        html += `<span class="tag" style="background:${p.accent}14;color:${p.accent};border:1px solid ${p.accent}30" onclick="removeItem('${p.key}','${day}',${i})" title="${day} — click to remove">${item}<span class="tag-day">·${day}</span></span>`;
+      });
+    });
+
+    if (!hasItems) {
+      html += `<span class="empty-hint">No content yet — click a day to add</span>`;
+    }
+
+    html += `</div></div>`;
+  });
+
+  html += `</div>
+    <div class="footer">Click any day cell to log content · Click goal number to edit · Click a tag to remove</div>
+  `;
+
+  app.innerHTML = html;
+}
+
+function renderDropdown(platformKey, day, accent) {
+  const types = CONTENT_TYPES[platformKey];
+  let h = `<div class="dropdown">`;
+  types.forEach(t => {
+    h += `<button onmouseover="this.style.background='${accent}12'" onmouseout="this.style.background='transparent'" onclick="addItem('${platformKey}','${day}','${t}')">${t}</button>`;
+  });
+  h += `<div class="divider"></div>`;
+  h += `<button class="cancel" onclick="closeDropdown()">Cancel</button>`;
+  h += `</div>`;
+  return h;
+}
+
+function toggleDropdown(platform, day) {
+  if (openDropdown && openDropdown.platform === platform && openDropdown.day === day) {
+    openDropdown = null;
+  } else {
+    openDropdown = { platform, day };
+  }
+  render();
+}
+
+function closeDropdown() {
+  openDropdown = null;
+  render();
+}
+
+function addItem(platform, day, type) {
+  state.data[platform][day].push(type);
+  openDropdown = null;
+  saveState(state);
+  render();
+}
+
+function removeItem(platform, day, index) {
+  state.data[platform][day].splice(index, 1);
+  saveState(state);
+  render();
+}
+
+function editGoal(platformKey, el) {
+  const current = state.goals[platformKey];
+  const platform = PLATFORMS.find(p => p.key === platformKey);
+  el.innerHTML = `<input class="goal-input" type="number" min="1" value="${current}" style="border-color:${platform.accent};color:${platform.accent}" onfocus="this.select()" onblur="saveGoal('${platformKey}',this.value)" onkeydown="if(event.key==='Enter')this.blur()">`;
+  el.querySelector('input').focus();
+}
+
+function saveGoal(platformKey, value) {
+  state.goals[platformKey] = Math.max(1, parseInt(value) || 1);
+  saveState(state);
+  render();
+}
+
+function clearAll() {
+  if (confirm("Clear all entries for this week?")) {
+    state.data = emptyData();
+    saveState(state);
+    render();
+  }
+}
+
+function resetDemo() {
+  if (confirm("Reset to sample data?")) {
+    state.data = sampleData();
+    state.goals = defaultGoals();
+    saveState(state);
+    render();
+  }
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', e => {
+  if (openDropdown && !e.target.closest('.heat-col') && !e.target.closest('.dropdown')) {
+    openDropdown = null;
+    render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
